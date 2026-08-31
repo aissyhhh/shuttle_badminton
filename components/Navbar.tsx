@@ -1,12 +1,10 @@
-"use client";
-
 import Image from "next/image";
 
 const links = [
-    { label: "Beranda", href: "#beranda" },
-    { label: "Artikel", href: "#artikel" },
-    { label: "Pemain", href: "#pemain" },
-    { label: "Turnamen", href: "#turnamen" },
+    { label: "Beranda", href: "/" },
+    { label: "Berita", href: "/berita" },
+    { label: "Pemain", href: "/pemain" },
+    { label: "Turnamen", href: "/turnamen" },
 ];
 
 export function Navbar() {
