@@ -1,77 +1,73 @@
 import Image from "next/image";
-
-const tournaments = {
-    upcoming: {
-        image: "/kejurda.png",
-        title: "Kejurda PBSI DIY 2026",
-        date: "August 26 - August 30",
-        location: "Daerah Istimewa Yogyakarta (DIY)",
-        button: "View Details",
-    },
-    ongoing: {
-        image: "/hydroplus.png",
-        title: "Hydroplus Sirkuit Nasional B Bengkulu",
-        date: "August 17 - August 22",
-        location: "Bengkulu",
-        button: "Live Score",
-    },
-    register: {
-        image: "/acibara.png",
-        title: "Acibara Champion Cup",
-        date: "August 24 - August 29",
-        location: "Nusa Tenggara Barat",
-        button: "Register Now",
-    },
-};
+import Link from "next/link";
+import { tournaments } from "@/lib/tournaments";
 
 export function Tournaments() {
+    const upcomingTournaments = tournaments.filter((tournament) => tournament.status === "upcoming");
+    const ongoingTournaments = tournaments.filter((tournament) => tournament.status === "ongoing");
+    const registerTournaments = tournaments.filter((tournament) => tournament.status === "registration");
+
     return (
-        <section className="max-w-500px rounded-sm bg-[#914D4D] p-5">
-            <h2 className="mb-7 text-4xl font-bold text-white">
-                Tournaments
-            </h2>
+        <section className="rounded-sm bg-[#faf6f6] p-4 sm:p-5 md:p-6">
+            {upcomingTournaments.length > 0 && (
+                <>
+                <h3 className="mb-5 text-lg font-bold text-[#823F3F] sm:text-xl">Upcoming Tournaments</h3>
+                <div className="space-y-4">
+                    {upcomingTournaments.map((tournament) => (
+                        <TournamentCard key={tournament.id} tournament={tournament} button="View Details"/>
+                    ))}
+                </div>
+                </>
+            )}
 
-            <div className="rounded-sm bg-white p-6">
-                <h3 className="mb-5 text-xl font-bold text-[#823F3F]">
-                    Upcoming Tournaments
-                </h3>
-                <TournamentCard item={tournaments.upcoming} />
+            {ongoingTournaments.length > 0 && (
+                <>
+                <h3 className="mb-5 mt-8 text-lg font-bold text-[#376e44] sm:text-xl">Ongoing Tournaments</h3>
+                <div className="space-y-4">
+                    {ongoingTournaments.map((tournament) => (
+                        <TournamentCard key={tournament.id} tournament={tournament} button="Live Score"/>
+                    ))}
+                </div>
+                </>
+            )}
 
-                <h3 className="mb-5 mt-8 text-xl font-bold text-green-800">
-                    Ongoing Tournaments
-                </h3>
-                <TournamentCard item={tournaments.ongoing} />
-
-                <h3 className="mb-5 mt-8 text-xl font-bold text-blue-900">
-                    Register Tournaments
-                </h3>
-                <TournamentCard item={tournaments.register} />
-            </div>
+            {registerTournaments.length > 0 && (
+                <>
+                <h3 className="mb-5 mt-8 text-lg font-bold text-[#823F3F] sm:text-xl">Register Tournaments</h3>
+                <div className="space-y-4">
+                    {registerTournaments.map((tournament) => (
+                        <TournamentCard key={tournament.id} tournament={tournament} button="Register Now"/>
+                    ))}
+                </div>
+                </>
+            )}
         </section>
     );
 }
 
-function TournamentCard({ item }: {item:any}) {
-    return(
-        <div className="flex gap-4 rounded-xl bg-white p-3 shadow-[0_3px_12px_rgba(0,0,0,0.15)]">
-            <Image src={item.image} alt={item.title} width={110} height={100} className="h-100px w-110px rounded-sm object-cover"/>
+function TournamentCard({tournament, button}: {
+    tournament: (typeof tournaments)[number];
+    button: string;
+}) {
+    return (
+        <div className="flex min-h-[130px] gap-3 rounded-xl bg-white p-3.5 shadow-[0_3px_12px_rgba(0,0,0,0.12)] sm:gap-4 sm:p-4">
+            <Image src={tournament.image} alt={tournament.name} width={130} height={105} className="h-[100px] w-[110px] shrink-0 rounded-md object-cover sm:h-[105px] sm:w-[130px]"/>
+            <div className="flex min-w-0 flex-1 flex-col">
+                <h4 className="text-sm font-bold leading-tight text-[#263D50] sm:text-base">
+                    {tournament.name}
+                </h4>
 
-        <div className="flex min-w-0 flex-1 flex-col">
-             <h4 className="text-base font-bold leading-tight text-[#823F3F]">
-                {item.title}
-            </h4>
+                <div className="mt-2 space-y-1 text-[10px] text-[#756B6B] sm:text-xs">
+                    <p>{tournament.date}</p>
+                    <p>{tournament.location}</p>
+                </div>
 
-            <div className="mt-2 space-y-1 text-xs text-[#823F3F]">
-                <p>{item.date}</p>
-                <p>{item.location}</p>
-            </div>
-
-            <div className="mt-auto flex justify-end">
-                <button className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-[0_2px_8px_rgba(0,0,0,0.15)]">
-                    {item.button}
-                </button>
+                <div className="mt-auto flex justify-end pt-2">
+                    <Link href={`/turnamen/${tournament.id}`} className="inline-flex h-8 min-w-[96px] items-center justify-center rounded-lg bg-[#823F3F] px-3 text-[10px] font-semibold text-white shadow-[0_2px_6px_rgba(0,0,0,0.12)] transition hover:bg-[#6F3434] sm:h-8.5 sm:min-w-[105px] sm:px-3.5 sm:text-[11px]">
+                        {button}
+                    </Link>
+                </div>
             </div>
         </div>
-        </div>
-    )
+    );
 }

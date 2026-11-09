@@ -1,68 +1,146 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
 import { ArticleFilter } from "./ArticleFilter";
-import { ArticleList } from "./ArticleList";
 import { Pagination } from "./Pagination";
-
-const articles = [
-  { image: "/ginting.jpg", title: "Anthony Sinisuka Ginting: Perjalanan dan Kiprah Sang Pebulu Tangkis Indonesia", description: "Anthony Sinisuka Ginting merupakan salah satu pebulu tangkis tunggal putra Indonesia yang dikenal melalui gaya bermainnya yang cepat, agresif, dan penuh determinasi.", date: "July 31 2026", category: "atlet" },
-  { image: "/alwi.jpg", title: "Alwi Farhan — Harapan Baru Tunggal Putra", description: "Alwi Farhan menjadi salah satu nama muda yang menarik perhatian dalam perkembangan tunggal putra Indonesia.", date: "July 29 2026", category: "atlet" },
-  { image: "/hendra.jpg", title: "Hendra Setiawan — Legenda di Lapangan", description: "Hendra Setiawan dikenal sebagai salah satu legenda ganda putra Indonesia. Teknik, ketenangan, dan pengalaman yang dimilikinya membuat namanya sangat dihormati.", date: "July 27 2026", category: "atlet" },
-  { image: "/jonathan.jpg", title: "Jonatan Christie: Konsistensi di Level Dunia", description: "Jonatan Christie terus menunjukkan konsistensi permainan di berbagai turnamen level BWF World Tour.", date: "July 25 2026", category: "atlet" },
-  { image: "/gregoria.jpg", title: "Gregoria Mariska Tunjung — Tulang Punggung Tunggal Putri", description: "Gregoria Mariska Tunjung tampil sebagai andalan utama sektor tunggal putri Indonesia dalam beberapa musim terakhir.", date: "July 23 2026", category: "atlet" },
-
-  { image: "/kejurda.png", title: "Kejurda PBSI DIY 2026", description: "Kejuaraan Daerah PBSI DIY 2026 digelar sebagai ajang pencarian bibit-bibit baru pebulu tangkis dari DIY.", date: "July 31 2026", category: "turnamen" },
-  { image: "/hydroplus.png", title: "Hydroplus Sirkuit Nasional B Bengkulu", description: "Sirkuit Nasional B yang digelar di Bengkulu ini menjadi bagian dari rangkaian kejuaraan berjenjang PBSI.", date: "July 28 2026", category: "turnamen" },
-  { image: "/acibara.png", title: "Acibara Champion Cup Digelar di Nusa Tenggara Barat", description: "Acibara Champion Cup menjadi salah satu turnamen bulu tangkis yang rutin digelar untuk mendukung ekosistem olahraga di NTB.", date: "July 26 2026", category: "turnamen" },
-  { image: "/open.jpeg", title: "Indonesia Open 2026: Panggung Utama Bulu Tangkis Tanah Air", description: "Indonesia Open kembali digelar dan menjadi salah satu turnamen level Super 1000 paling bergengsi di kalender BWF.", date: "July 24 2026", category: "turnamen" },
-  { image: "/england.webp", title: "All England 2026: Sejarah Panjang yang Terus Berlanjut", description: "All England Open Badminton Championships tetap menjadi salah satu turnamen tertua dan paling dihormati di dunia bulu tangkis.", date: "July 22 2026", category: "turnamen" },
-
-  { image: "/badminton.jpg", title: "Perkembangan Bulu Tangkis Nasional Indonesia", description: "Bulu tangkis merupakan salah satu cabang olahraga yang memiliki tempat istimewa di Indonesia.", date: "July 31 2026", category: "tips" },
-  { image: "/smash.jpeg", title: "Teknik Smash yang Efektif untuk Pemula", description: "Smash merupakan salah satu pukulan andalan dalam bulu tangkis. Posisi tubuh dan timing jadi kunci utamanya.", date: "July 29 2026", category: "tips" },
-  { image: "/pola.jpg", title: "Cara Membaca Pola Permainan Lawan", description: "Kemampuan membaca pola permainan lawan menjadi salah satu kunci kemenangan di level kompetitif.", date: "July 27 2026", category: "tips" },
-  { image: "/footwork.jpg", title: "Latihan Footwork untuk Meningkatkan Kecepatan", description: "Footwork yang baik memungkinkan pemain bergerak lebih efisien ke seluruh area lapangan.", date: "July 25 2026", category: "tips" },
-  { image: "/stamina.jpg", title: "Menjaga Stamina Saat Pertandingan Berlangsung Lama", description: "Pertandingan yang berjalan alot membutuhkan daya tahan fisik dan mental yang prima.", date: "July 23 2026", category: "tips" },
-];
+import { fetchArticles, type ArticleItem } from "@/lib/articleApi";
 
 const PAGE_SIZE = 9;
 
 export function ArticleSection() {
   const [category, setCategory] = useState("semua");
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
 
-  const filtered = articles.filter((item) => {
-    const matchCategory = category === "semua" || item.category === category;
-    const matchSearch = item.title.toLowerCase().includes(search.toLowerCase());
-    return matchCategory && matchSearch;
-  });
+  const [items, setItems] = useState<ArticleItem[]>([]);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const safePage = Math.min(page, totalPages);
-  const start = (safePage - 1) * PAGE_SIZE;
-  const paginatedItems = filtered.slice(start, start + PAGE_SIZE);
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 400);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError("");
+
+    fetchArticles({
+      page,
+      limit: PAGE_SIZE,
+      kategori: category === "semua" ? undefined : category,
+      search: debouncedSearch || undefined,
+    })
+      .then((res) => {
+        if (cancelled) return;
+        setItems(res.items);
+        setTotalPages(Math.max(1, res.totalPages));
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err instanceof Error ? err.message : "Terjadi kesalahan");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [page, category, debouncedSearch]);
 
   const handleCategoryChange = (value: string) => {
     setCategory(value);
     setPage(1);
   };
 
-  const handleSearchChange = (value: string) => {
-    setSearch(value);
-    setPage(1);
-  };
+  const [firstArticle, ...restArticles] = items;
 
   return (
-    <div className="mx-auto max-w-[1376px] px-8 py-13">
-      <ArticleFilter 
+    <div className="mx-auto max-w-344 px-8 py-13">
+      <ArticleFilter
         category={category}
         onCategoryChange={handleCategoryChange}
         search={search}
-        onSearchChange={handleSearchChange}
+        onSearchChange={setSearch}
       />
-      <ArticleList items={paginatedItems} />
-      <Pagination page={safePage} totalPages={totalPages} onPageChange={setPage} />
+
+      <section>
+        <div className="mb-6 flex items-end justify-between border-b border-[#24394B]/50 pb-3">
+          <h2 className="text-2xl font-bold text-[#24394B] sm:text-3xl">Berita Menarik</h2>
+        </div>
+
+        {error ? (
+          <p className="p-6 text-center text-sm text-[#C90000]">{error}</p>
+        ) : loading ? (
+          <p className="p-6 text-center text-sm text-gray-500">Memuat artikel...</p>
+        ) : !firstArticle ? (
+          <p className="p-6 text-center text-sm text-gray-500">Tidak ada artikel yang cocok.</p>
+        ) : (
+          <>
+            <article className="mb-5 flex flex-col gap-4 rounded-md bg-[#FAFAFA] p-3 shadow-md hover:shadow-lg sm:flex-row sm:gap-6 sm:p-5">
+              <div className="relative h-52 w-full shrink-0 overflow-hidden rounded-sm sm:h-55 sm:w-72 md:w-85">
+                <Image src={firstArticle.image} alt={firstArticle.title} fill sizes="(max-width: 640px) 100vw, (max-width: 768px) 288px, 340px" className="object-cover" />
+              </div>
+
+              <div className="flex min-w-0 flex-1 flex-col">
+                <h3 className="text-lg font-bold leading-snug text-[#24394B] sm:text-xl">
+                  {firstArticle.title}
+                </h3>
+                <p className="mt-2 line-clamp-4 text-sm leading-relaxed text-gray-500 sm:mt-3">
+                  {firstArticle.description}
+                </p>
+                <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-4">
+                  <span className="text-xs font-semibold text-[#24394B] sm:text-sm">
+                    {firstArticle.date}
+                  </span>
+                  <Link href={`/berita/${firstArticle.slug}`} className="text-xs font-medium text-[#BF6666] underline sm:text-sm">
+                    Selengkapnya →
+                  </Link>
+                </div>
+              </div>
+            </article>
+
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+              {restArticles.map((item) => (
+                <article key={item.slug} className="flex min-w-0 gap-3 rounded-md bg-[#FAFAFA] p-2 shadow-md transition-shadow duration-300 hover:shadow-lg">
+                  <div className="relative h-24 w-20 shrink-0 overflow-hidden rounded-sm sm:h-25 sm:w-22.5">
+                    <Image src={item.image} alt={item.title} fill sizes="90px" className="object-cover" />
+                  </div>
+
+                  <div className="flex min-w-0 flex-1 flex-col">
+                    <h3 className="line-clamp-2 text-sm font-bold leading-snug text-[#24394B]">
+                      {item.title}
+                    </h3>
+                    <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-gray-500">
+                      {item.description}
+                    </p>
+                    <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-2">
+                      <span className="text-[10px] font-semibold text-[#24394B] sm:text-xs">
+                        {item.date}
+                      </span>
+                      <Link href={`/berita/${item.slug}`} className="text-[10px] text-[#C06D6D] underline sm:text-xs">
+                        Baca Selengkapnya
+                      </Link>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </>
+        )}
+      </section>
+
+      {!loading && !error && (
+        <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
+      )}
     </div>
   );
 }
